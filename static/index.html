@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+		<title>InfoSiftr :: KubeCon Demo</title>
+
+		<!-- Bootstrap -->
+		<link href="css/bootstrap.min.css" rel="stylesheet">
+
+		<style>
+			body {
+				padding: 1em;
+			}
+			td {
+				vertical-align: middle !important;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="navbar navbar-default navbar-inverse">
+			<div class="container-fluid">
+				<div class="navbar-header">
+					<a class="navbar-brand" href="http://www.infosiftr.com" target="_blank">
+						<img alt="InfoSiftr" src="infosiftr.png" />
+					</a>
+				</div>
+				<h1 class="navbar-text">Hello, KubeCon!</h1>
+			</div>
+		</div>
+
+		<div class="panel panel-default">
+			<div class="panel-heading">Cluster Nodes</div>
+
+			<table class="table">
+				<tbody class="nodes-table">
+					<tr><td>Loading &hellip; &nbsp; (please wait)</td></tr>
+				</tbody>
+			</table>
+		</div>
+
+		<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+		<!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>-->
+		<script src="js/jquery.min.js"></script>
+		<!-- Include all compiled plugins (below), or include individual files as needed -->
+		<script src="js/bootstrap.min.js"></script>
+
+		<script>
+			function refreshNodes() {
+				$.ajax('/api/nodes', {
+					success: function(data, textStatus, jqXHR) {
+						var nodesTableContent = $('<tbody class="nodes-table">');
+						$.each(data, function(i, node) {
+							var nodesTableRow = $('<tr>').append(
+								$('<td>').append(
+									$('<strong>').text(node['Hostname'])
+								).append(' ').append(
+									$('<small>').text('(' + node['ID'] + ')')
+								)
+							).append(
+								$('<td style="width: 25%;">').append(
+									$('<code>').text(node['OS'] + ' / ' + node['Architecture'])
+								)
+							).append(
+								$('<td style="width: 25%;">').append(
+									$('<div class="btn-group" role="group">').append(
+										$('<button class="btn">').addClass(
+											node['DemoActive'] ? 'btn-danger' : 'btn-success'
+										).text(
+											node['DemoActive'] ? 'Deactivate' : 'Activate'
+										).click(function() {
+											$.ajax('/api/node/' + (node['DemoActive'] ? 'deactivate' : 'activate') + '?' + $.param({ node: node['ID'] }), {
+												success: function() { refreshNodes(); }
+											});
+										})
+									)
+								)
+							);
+							nodesTableContent.append(nodesTableRow);
+							$.each(node['Services'], function(name, state) {
+								var nodeServiceRow = $('<tr>').append(
+									$('<td style="padding-left: 2em;">').append(
+										$('<small>').append($('<code>').text(name))
+									)
+								).append(
+									$('<td colspan="2">').append(
+										$('<em>').text(state)
+									)
+								);
+								nodesTableContent.append(nodeServiceRow);
+							});
+						});
+						$('.nodes-table').replaceWith(nodesTableContent);
+					}
+				});
+			}
+			$(document).ready(function() {
+				refreshNodes();
+				setInterval(refreshNodes, 3000);
+			});
+		</script>
+	</body>
+</html>
