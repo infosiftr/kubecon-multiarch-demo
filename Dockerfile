@@ -6,7 +6,7 @@ ENV PATH $GOPATH/bin:$PATH
 RUN set -eux; \
 	apt-get update; \
 	apt-get install -y --no-install-recommends \
-		golang-go \
+		golang-go gcc libc6-dev \
 	; \
 	rm -rf /var/lib/apt/lists/*
 
