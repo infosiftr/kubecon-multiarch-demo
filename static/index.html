@@ -34,7 +34,7 @@
 		<div class="panel panel-default">
 			<div class="panel-heading">Cluster Nodes</div>
 
-			<table class="table">
+			<table class="table table-hover">
 				<tbody class="nodes-table">
 					<tr><td>Loading &hellip; &nbsp; (please wait)</td></tr>
 				</tbody>
@@ -66,10 +66,10 @@
 							).append(
 								$('<td style="width: 25%;">').append(
 									$('<div class="btn-group" role="group">').append(
-										$('<button class="btn">').addClass(
+										$('<span class="btn">').addClass(
 											node['DemoActive'] ? 'btn-danger' : 'btn-success'
-										).text(
-											node['DemoActive'] ? 'Deactivate' : 'Activate'
+										).addClass('glyphicon').addClass(
+											node['DemoActive'] ? 'glyphicon-minus' : 'glyphicon-plus'
 										).click(function() {
 											$.ajax('/api/node/' + (node['DemoActive'] ? 'deactivate' : 'activate') + '?' + $.param({ node: node['ID'] }), {
 												success: function() { refreshNodes(); }
@@ -80,7 +80,9 @@
 							);
 							nodesTableContent.append(nodesTableRow);
 							$.each(node['Services'], function(name, state) {
-								var nodeServiceRow = $('<tr>').append(
+								var nodeServiceRow = $('<tr>').addClass(
+									state.startsWith('Running') ? 'success' : 'warning'
+								).append(
 									$('<td style="padding-left: 2em;">').append(
 										$('<small>').append($('<code>').text(name))
 									)

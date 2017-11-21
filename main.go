@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 )
 
@@ -59,23 +60,26 @@ func apiNodes(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	nodes, err := docker("node", "ls", "--filter", "role=worker", "--format", "{{ .ID }}|{{ .Availability }}|{{ .Hostname }}")
+	nodesTxt, err := docker("node", "ls", "--filter", "role=worker", "--format", "{{ .Hostname }}|{{ .ID }}|{{ .Availability }}")
 	if err != nil {
 		log.Print("docker node ls: ", err)
 		return
 	}
 	ret := []map[string]interface{}{}
-	for _, node := range strings.Split(nodes, "\n") {
+	nodes := strings.Split(nodesTxt, "\n")
+	sort.Strings(nodes)
+	for _, node := range nodes {
 		nodeParts := strings.SplitN(node, "|", 3)
-		if nodeParts[1] != "Active" {
+		if nodeParts[2] != "Active" {
 			// ignore unavailable nodes
 			continue
 		}
 		nodeRet := map[string]interface{}{
-			"ID":       nodeParts[0],
-			"Hostname": nodeParts[2],
-			"Services": nodeServices[nodeParts[2]],
+			"ID":       nodeParts[1],
+			"Hostname": nodeParts[0],
 		}
+
+		nodeRet["Services"] = nodeServices[nodeRet["Hostname"].(string)]
 
 		nodeActive, err := docker("node", "inspect", "--format", fmt.Sprintf("{{ index .Spec.Labels %q }}", demoLabelKey), nodeRet["ID"].(string))
 		nodeRet["DemoActive"] = err == nil && nodeActive == demoLabelVal
