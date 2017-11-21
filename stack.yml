@@ -1,3 +1,5 @@
+# docker stack deploy -c stack.yml --resolve-image never kubecon-demo
+
 version: '3'
 
 services:
