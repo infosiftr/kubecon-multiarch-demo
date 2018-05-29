@@ -1,17 +1,17 @@
 # manifest-tool push from-spec --ignore-missing manifest.yml
 ---
-image: infosiftr/kubecon-demo:latest
+image: infosiftr/dockercon-demo:latest
 manifests:
-  - image: infosiftr/kubecon-demo:amd64
+  - image: infosiftr/dockercon-demo:amd64
     platform:
       os: linux
       architecture: amd64
-  - image: infosiftr/kubecon-demo:arm32v7
+  - image: infosiftr/dockercon-demo:arm32v7
     platform:
       os: linux
       architecture: arm
       variant: v7
-  - image: infosiftr/kubecon-demo:arm64v8
+  - image: infosiftr/dockercon-demo:arm64v8
     platform:
       os: linux
       architecture: arm64

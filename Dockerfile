@@ -10,11 +10,11 @@ RUN set -eux; \
 	; \
 	rm -rf /var/lib/apt/lists/*
 
-WORKDIR $GOPATH/src/kubecon-demo
+WORKDIR $GOPATH/src/dockercon-demo
 
 COPY *.go ./
 RUN go install -v ./...
 
 COPY static static
 
-CMD ["kubecon-demo"]
+CMD ["dockercon-demo"]
