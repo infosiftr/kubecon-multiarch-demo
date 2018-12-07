@@ -17,17 +17,12 @@ import (
 )
 
 const (
-	demoLabelKey = "com.infosiftr.kubecon-demo.active"
-	demoLabelVal = "yes"
-
 	randomBytes = 1024 * 1024
-
-	verboseDebugOutput = false
 )
 
-func docker(args ...string) (string, error) {
-	fmt.Fprintf(os.Stderr, "$ docker %q\n", args)
-	cmd := exec.Command("docker", args...)
+func kubectl(args ...string) (string, error) {
+	fmt.Fprintf(os.Stderr, "$ kubectl %q\n", args)
+	cmd := exec.Command("kubectl", args...)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = os.Stderr
@@ -47,52 +42,40 @@ func js(in interface{}) string {
 
 func apiNodes(w http.ResponseWriter, r *http.Request) {
 	nodeServices := map[string]map[string]string{} // [node][service] = CurrentState
-	servicesTxt, _ := docker("service", "ls", "--format", "{{ .Name }}")
-	if servicesTxt != "" {
-		serviceNames := strings.Split(servicesTxt, "\n")
-		servicesTxt, _ = docker(append([]string{"service", "ps", "--filter", "desired-state=running", "--format", "{{ .Node }}|{{ .Name }}|{{ .CurrentState }}"}, serviceNames...)...)
-		for _, service := range strings.Split(servicesTxt, "\n") {
-			serviceParts := strings.SplitN(service, "|", 3)
-			if _, ok := nodeServices[serviceParts[0]]; !ok {
-				nodeServices[serviceParts[0]] = map[string]string{}
-			}
-			nodeServices[serviceParts[0]][serviceParts[1]] = serviceParts[2]
+	servicesTxt, err := kubectl("get", "pods", "-l", "app=blinky-server", "-o", `go-template={{ range .items }}{{ .spec.nodeName }}|{{ .metadata.name }}|{{ .status.phase }}{{ range .status.containerStatuses }}{{ range .state }}{{ if .reason }} / {{ .reason }}{{ end }}{{ end }}{{ end }}{{ "\n" }}{{ end }}`)
+	if err != nil {
+		log.Print("kubectl get pods: ", err)
+		return
+	}
+	for _, service := range strings.Split(servicesTxt, "\n") {
+		serviceParts := strings.SplitN(service, "|", 3)
+		if _, ok := nodeServices[serviceParts[0]]; !ok {
+			nodeServices[serviceParts[0]] = map[string]string{}
 		}
+		nodeServices[serviceParts[0]][serviceParts[1]] = serviceParts[2]
 	}
 
-	nodesTxt, err := docker("node", "ls", "--filter", "role=worker", "--format", "{{ .Hostname }}|{{ .ID }}|{{ .Availability }}")
+	nodesTxt, err := kubectl("get", "nodes", "-l", "!node-role.kubernetes.io/master", "-o", `go-template={{ range .items }}{{ .metadata.name }}|{{ .status.nodeInfo.operatingSystem }}|{{ .status.nodeInfo.architecture }}|{{ .metadata.labels.app }}{{ "\n" }}{{ end }}`)
 	if err != nil {
-		log.Print("docker node ls: ", err)
+		log.Print("kubectl get nodes: ", err)
 		return
 	}
 	ret := []map[string]interface{}{}
 	nodes := strings.Split(nodesTxt, "\n")
 	sort.Strings(nodes)
 	for _, node := range nodes {
-		nodeParts := strings.SplitN(node, "|", 3)
-		if nodeParts[2] != "Active" {
-			// ignore unavailable nodes
-			continue
-		}
+		nodeParts := strings.SplitN(node, "|", 4)
 		nodeRet := map[string]interface{}{
-			"ID":       nodeParts[1],
+			"ID":       nodeParts[0],
 			"Hostname": nodeParts[0],
+
+			"OS": nodeParts[1],
+			"Architecture": nodeParts[2],
 		}
 
 		nodeRet["Services"] = nodeServices[nodeRet["Hostname"].(string)]
 
-		nodeActive, err := docker("node", "inspect", "--format", fmt.Sprintf("{{ index .Spec.Labels %q }}", demoLabelKey), nodeRet["ID"].(string))
-		nodeRet["DemoActive"] = err == nil && nodeActive == demoLabelVal
-
-		nodePlatform, err := docker("node", "inspect", "--format", "{{ .Description.Platform.OS }}|{{ .Description.Platform.Architecture }}", nodeRet["ID"].(string))
-		if err == nil {
-			nodePlatformParts := strings.SplitN(nodePlatform, "|", 2)
-			nodeRet["OS"] = nodePlatformParts[0]
-			nodeRet["Architecture"] = nodePlatformParts[1]
-		} else {
-			nodeRet["OS"] = nil
-			nodeRet["Architecture"] = nil
-		}
+		nodeRet["DemoActive"] = nodeParts[3] == "blinky-node"
 
 		ret = append(ret, nodeRet)
 	}
@@ -105,9 +88,9 @@ func apiNodeActivate(w http.ResponseWriter, r *http.Request) {
 	if node == "" {
 		return
 	}
-	_, err := docker("node", "update", "--label-add", demoLabelKey+"="+demoLabelVal, node)
+	_, err := kubectl("label", "node", node, "app=blinky-node", "--overwrite")
 	if err != nil {
-		log.Print("docker node update: ", err)
+		log.Print("kubectl node update: ", err)
 		return
 	}
 	w.Header().Add("Content-Type", "application/json")
@@ -119,9 +102,9 @@ func apiNodeDeactivate(w http.ResponseWriter, r *http.Request) {
 	if node == "" {
 		return
 	}
-	_, err := docker("node", "update", "--label-rm", demoLabelKey, node)
+	_, err := kubectl("label", "node", node, "app=blinky-nope", "--overwrite")
 	if err != nil {
-		log.Print("docker node update: ", err)
+		log.Print("kubectl node update: ", err)
 		return
 	}
 	w.Header().Add("Content-Type", "application/json")

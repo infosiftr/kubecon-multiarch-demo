@@ -1,4 +1,4 @@
-FROM debian:stretch-slim
+FROM arm32v7/debian:stretch-slim
 
 # https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl
 RUN set -eux; \
@@ -28,6 +28,7 @@ RUN set -eux; \
 	; \
 	rm -rf /var/lib/apt/lists/*; \
 	\
+	export GOARCH='arm' GOARM='7'; \
 	go install -v ./...; \
 	\
 	apt-mark auto '.*' > /dev/null; \
