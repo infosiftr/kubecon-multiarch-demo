@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: blinky
+  namespace: default
+  labels:
+    app: blinky-server
+spec:
+  selector:
+    matchLabels:
+      app: blinky-server
+  template:
+    metadata:
+      labels:
+        app: blinky-server
+    spec:
+      nodeSelector:
+        app: blinky-node
+      containers:
+      - name : blinktest
+        imagePullPolicy: Always
+        image: 172.23.0.151:5000/dockercon-demo
+        command: ["kubecon-demo"]
+        args: ["172.23.0.151"]
+      dnsPolicy: "None"
+      dnsConfig:
+        nameservers:
+          - 172.23.0.1
+# TODO supply command: kubecon-demo ip-address-or-hostname-of-the-"echo"-server-instance
