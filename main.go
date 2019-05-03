@@ -17,6 +17,9 @@ import (
 )
 
 const (
+	demoLabelKey = "com.infosiftr.dockercon-demo.active"
+	demoLabelVal = "yes"
+
 	randomBytes = 1024 * 1024
 )
 
@@ -166,7 +169,7 @@ func workerApiDump(apiServer string) {
 	log.Print("received ", md5sum(resp.Body))
 }
 
-// usage: kubecon-demo [api-server]
+// usage: dockercon-demo [api-server]
 //
 // run without arguments to start an api-server instance
 // run with a single argument to blast data at "/api/echo" endpoint of the given api-server instance (blink blink blink go the lights)

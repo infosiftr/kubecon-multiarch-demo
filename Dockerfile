@@ -16,8 +16,6 @@ RUN set -eux; \
 ENV GOPATH /go
 ENV PATH $GOPATH/bin:$PATH
 
-WORKDIR $GOPATH/src/kubecon-demo
-
 RUN set -eux; \
 	apt-get update; \
 	apt-get install -y --no-install-recommends \
@@ -25,9 +23,11 @@ RUN set -eux; \
 	; \
 	rm -rf /var/lib/apt/lists/*
 
+WORKDIR $GOPATH/src/dockercon-demo
+
 COPY *.go ./
 RUN go install -v ./...
 
 COPY static static
 
-CMD ["kubecon-demo"]
+CMD ["dockercon-demo"]
