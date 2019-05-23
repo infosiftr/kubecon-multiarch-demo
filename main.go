@@ -51,6 +51,10 @@ func apiNodes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, service := range strings.Split(servicesTxt, "\n") {
+		if service == "" {
+			// ignore empty lines (likely means everything is turned off)
+			continue
+		}
 		serviceParts := strings.SplitN(service, "|", 3)
 		if _, ok := nodeServices[serviceParts[0]]; !ok {
 			nodeServices[serviceParts[0]] = map[string]string{}
